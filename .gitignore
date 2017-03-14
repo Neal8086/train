@@ -1,0 +1,7 @@
+
+*.lock
+target
+
+.DS_Store
+.idea/**
+.idea/*/*.*

@@ -1,0 +1,8 @@
+[package]
+name = "train"
+version = "0.1.0"
+authors = ["LI <haiwei8086@gmail.com>"]
+
+[dependencies]
+libc = "0.2.21"
+rustc-serialize = "0.3.22"
