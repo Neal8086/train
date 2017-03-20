@@ -4,3 +4,6 @@ pub mod libc {
     pub use self::libc::*;
 }
 
+mod os;
+
+pub use os::unix;
