@@ -30,5 +30,5 @@ unsafe fn clear() -> () {
 }
 
 pub struct NsOsErrno {
-
+    
 }

@@ -12,12 +12,18 @@ pub enum NsSocketType {
     Rdm = SOCK_RDM,
 }
 
-pub struct NsSocket {
-    fd: NsFd,
-}
+pub struct NsSocket(NsFd);
 
 impl NsSocket {
-    pub fn new(domain: NsAddressFamily, ty: NsSocketType, protocol: c_int) -> NsSocket {
 
+    pub fn new(domain: NsAddressFamily, ty: NsSocketType, protocol: c_int) -> NsSocket {
+        let fd = unsafe { socket(domain as c_int, ty as c_int, protocol) };
+
+        NsSocket(NsFd::new(fd))
     }
+
+    pub fn fd(&self) -> NsFd {
+        self.0
+    }
+
 }
