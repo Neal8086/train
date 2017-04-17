@@ -6,7 +6,7 @@ use train::os::socket::*;
 
 fn main() {
 
-    let s = socket::NsSocket::new(NsAddressFamily::NsInet, NsSocketType::Stream, 0);
+    let s = NsSocket::new(NsAddressFamily::NsInet, NsSocketType::Stream, 0);
 
-    println!("{:?}", s.fd());
+    println!("{:?}", s);
 }

@@ -1,17 +1,20 @@
-use libc::{c_int, socket, SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW, SOCK_RDM};
+
+use libc::{self, c_int, socket};
 use super::fd::NsFd;
 use super::addr::NsAddressFamily;
+use std::{fmt};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(i32)]
 pub enum NsSocketType {
-    Stream = SOCK_STREAM,
-    Datagram = SOCK_DGRAM,
-    SeqPacket = SOCK_SEQPACKET,
-    Raw = SOCK_RAW,
-    Rdm = SOCK_RDM,
+    Stream = libc::SOCK_STREAM,
+    Datagram = libc::SOCK_DGRAM,
+    SeqPacket = libc::SOCK_SEQPACKET,
+    Raw = libc::SOCK_RAW,
+    Rdm = libc::SOCK_RDM,
 }
 
+#[derive(Debug)]
 pub struct NsSocket(NsFd);
 
 impl NsSocket {
@@ -22,8 +25,11 @@ impl NsSocket {
         NsSocket(NsFd::new(fd))
     }
 
-    pub fn fd(&self) -> NsFd {
-        self.0
-    }
 
+}
+
+impl fmt::Display for NsSocket {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }

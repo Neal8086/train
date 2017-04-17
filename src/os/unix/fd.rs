@@ -1,6 +1,8 @@
 use libc::{c_int, close};
 use std::{fmt};
 
+
+#[derive(Debug)]
 pub struct NsFd {
     fd: c_int,
 }
@@ -15,21 +17,16 @@ impl NsFd {
     }
 }
 
-
 impl Drop for NsFd {
     fn drop(&mut self) {
-        let _ = unsafe { close(self.fd) };
+        let ret = unsafe { close(self.fd) };
+
+        println!("DEBUG::Closed FD Result: {}", ret);
     }
 }
 
 impl fmt::Display for NsFd {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_raw_fd())
-    }
-}
-
-impl fmt::Debug for NsFd {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(self, f)
     }
 }
