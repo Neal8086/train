@@ -8,5 +8,11 @@ fn main() {
 
     let s = NsSocket::new(NsAddressFamily::NsInet, NsSocketType::Stream, 0);
 
-    println!("{:?}", s);
+    println!("flag: {:?}", NsSocket::get_flags(s.fd()).unwrap());
+
+    NsSocket::set_nonblocking(s.fd());
+
+    println!("non-blocking: {:?}", NsSocket::get_flags(s.fd()).unwrap());
+    println!("fd: {:?}", s);
+    
 }
