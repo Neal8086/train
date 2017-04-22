@@ -1,32 +1,27 @@
-use libc::{c_int, close};
-use std::{fmt};
+use libc::{self, c_int};
+use NsError;
+use NsResult;
 
 
-#[derive(Debug)]
-pub struct NsFd {
-    fd: c_int,
+pub fn ns_flags(fd: c_int) -> NsResult<c_int> {
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
+    if flags < 0 {
+        print!("DEBUG: Can not get fd flag: {:?}", flags);
+        return Err(NsError::Unknow);
+    }
+    
+    Ok(flags)
 }
 
-impl NsFd {
-    pub fn new(fd: c_int) -> NsFd {
-        NsFd { fd: fd }
+pub fn ns_set_nonblocking(fd: c_int) -> NsResult<c_int> {
+    let mut flags = ns_flags(fd).unwrap();
+    flags |= libc::O_NONBLOCK;
+
+    let ret = unsafe { libc::fcntl(fd, libc::F_SETFL, flags) };
+    if ret == -1 {
+        println!("DEBUG: Set Non-blocking FD failed");
+        return Err(NsError::Unknow);
     }
 
-    pub fn as_raw_fd(&self) -> c_int {
-        self.fd
-    }
-}
-
-impl Drop for NsFd {
-    fn drop(&mut self) {
-        let ret = unsafe { close(self.fd) };
-
-        println!("DEBUG::Closed FD Result: {}", ret);
-    }
-}
-
-impl fmt::Display for NsFd {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_raw_fd())
-    }
+    Ok(0)
 }

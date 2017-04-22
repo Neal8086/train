@@ -1,4 +1,5 @@
 
+
 mod libc {
     extern crate libc;
     pub use self::libc::*;
@@ -9,4 +10,7 @@ mod winapi {
     pub use self::winapi::*;
 }
 
+pub mod core;
 pub mod os;
+
+pub use self::core::{NsResult, NsError};
