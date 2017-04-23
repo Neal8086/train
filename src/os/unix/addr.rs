@@ -1,16 +1,16 @@
 
 use super::ip::{NsIPAddr, NsIPv4Addr, NsIPv6Addr};
 
-use libc::{sockaddr, sockaddr_in, sockaddr_in6, sockaddr_un, AF_UNIX, AF_INET, AF_INET6, sa_family_t, socklen_t};
+use libc::{sockaddr, sockaddr_in, sockaddr_in6, sockaddr_un, socklen_t};
 use std::{mem, net, fmt, hash};
 
 
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum NsAddressFamily {
-    NsUnix = AF_UNIX,
-    NsInet = AF_INET,
-    NsInet6 = AF_INET6,
+    NsUnix = libc::AF_UNIX,
+    NsInet = libc::AF_INET,
+    NsInet6 = libc::AF_INET6,
 }
 
 #[derive(Copy)]
@@ -35,7 +35,7 @@ pub enum NsSockAddr {
 impl NsInetAddrV4 {
     pub fn new(ip: NsIPv4Addr, port: u16) -> NsInetAddrV4 {
         NsInetAddrV4(sockaddr_in {
-            sin_family: NsAddressFamily::NsInet as sa_family_t,
+            sin_family: NsAddressFamily::NsInet as libc::sa_family_t,
             sin_port: port.to_be(),
             sin_addr: ip.0,
             .. unsafe { mem::zeroed() }
@@ -44,7 +44,7 @@ impl NsInetAddrV4 {
 
     pub fn from_std(std_addr: &net::SocketAddrV4) -> NsInetAddrV4 {
         NsInetAddrV4(sockaddr_in {
-            sin_family: NsAddressFamily::NsInet as sa_family_t,
+            sin_family: NsAddressFamily::NsInet as libc::sa_family_t,
             sin_port: std_addr.port().to_be(),
             sin_addr: NsIPv4Addr::from_std(std_addr.ip()).0,
             .. unsafe { mem::zeroed() }
@@ -67,7 +67,7 @@ impl NsInetAddrV4 {
 impl NsInetAddrV6 {
     pub fn new(ip: NsIPv6Addr, port: u16) -> NsInetAddrV6 {
         NsInetAddrV6(sockaddr_in6 {
-            sin6_family: NsAddressFamily::NsInet6 as sa_family_t,
+            sin6_family: NsAddressFamily::NsInet6 as libc::sa_family_t,
             sin6_port: port.to_be(),
             sin6_addr: ip.0,
             .. unsafe { mem::zeroed() }
@@ -76,7 +76,7 @@ impl NsInetAddrV6 {
 
     pub fn from_std(std_addr: &net::SocketAddrV6) -> NsInetAddrV6 {
         NsInetAddrV6(sockaddr_in6 {
-            sin6_family: NsAddressFamily::NsInet6 as sa_family_t,
+            sin6_family: NsAddressFamily::NsInet6 as libc::sa_family_t,
             sin6_port: std_addr.port().to_be(),
             sin6_addr: NsIPv6Addr::from_std(std_addr.ip()).0,
             sin6_flowinfo: std_addr.flowinfo(),
