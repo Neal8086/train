@@ -1,9 +1,10 @@
-use libc::{self, c_int};
+use libc;
 use NsError;
 use NsResult;
+use super::*;
 
 
-pub fn ns_flags(fd: c_int) -> NsResult<c_int> {
+pub fn ns_flags(fd: ns_fd) -> NsResult<ns_int> {
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
     if flags < 0 {
         print!("DEBUG: Can not get fd flag: {:?}", flags);
@@ -13,15 +14,3 @@ pub fn ns_flags(fd: c_int) -> NsResult<c_int> {
     Ok(flags)
 }
 
-pub fn ns_set_nonblocking(fd: c_int) -> NsResult<c_int> {
-    let mut flags = ns_flags(fd).unwrap();
-    flags |= libc::O_NONBLOCK;
-
-    let ret = unsafe { libc::fcntl(fd, libc::F_SETFL, flags) };
-    if ret == -1 {
-        println!("DEBUG: Set Non-blocking FD failed");
-        return Err(NsError::Unknow);
-    }
-
-    Ok(0)
-}

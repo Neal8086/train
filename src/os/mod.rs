@@ -7,7 +7,4 @@ mod os;
 #[path = "win/mod.rs"]
 mod os;
 
-mod addr;
-
 pub use self::os::*;
-pub use self::addr::*;

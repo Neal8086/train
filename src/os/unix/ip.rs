@@ -1,11 +1,11 @@
-use libc::{in_addr, in6_addr};
+
 use std::{net, fmt, mem};
-
+use super::*;
 
 #[derive(Clone, Copy)]
-pub struct NsIPv4Addr(pub in_addr);
+pub struct NsIPv4Addr(pub ns_in4_addr);
 #[derive(Clone, Copy)]
-pub struct NsIPv6Addr(pub in6_addr);
+pub struct NsIPv6Addr(pub ns_in6_addr);
 
 pub enum NsIPAddr {
     V4(NsIPv4Addr),
@@ -29,7 +29,7 @@ impl NsIPv4Addr {
                   ((c as u32) <<  8) |
                    (d as u32)).to_be();
 
-        NsIPv4Addr(in_addr { s_addr: ip })
+        NsIPv4Addr(ns_in4_addr { s_addr: ip })
     }
 
     pub fn from_std(std_addr: &net::Ipv4Addr) -> NsIPv4Addr {
@@ -39,7 +39,7 @@ impl NsIPv4Addr {
     }
 
     pub fn any() -> NsIPv4Addr {
-        NsIPv4Addr(in_addr { s_addr: 0 })
+        NsIPv4Addr(ns_in4_addr { s_addr: 0 })
     }
 
     pub fn octets(&self) -> [u8; 4] {
@@ -57,7 +57,7 @@ impl NsIPv4Addr {
 
 impl NsIPv6Addr {
     pub fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> NsIPv6Addr {
-        let mut addr: in6_addr = unsafe { mem::zeroed() };
+        let mut addr: ns_in6_addr = unsafe { mem::zeroed() };
         addr.s6_addr = [(a >> 8) as u8, a as u8,
                         (b >> 8) as u8, b as u8,
                         (c >> 8) as u8, c as u8,
