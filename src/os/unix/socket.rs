@@ -1,4 +1,4 @@
-use std::{mem, io};
+use std::{mem};
 use libc;
 use NsError;
 use NsResult;
@@ -7,7 +7,7 @@ use super::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(i32)]
-pub enum NsSocketType {
+pub enum NsSockType {
     Stream = NS_SOCK_STREAM,
     Datagram = NS_SOCK_DGRAM,
     SeqPacket = NS_SOCK_SEQPACKET,
@@ -15,7 +15,7 @@ pub enum NsSocketType {
     Rdm = NS_SOCK_RDM,
 }
 
-pub fn ns_socket(domain: NsAddrFamily, ty: NsSocketType, protocol: ns_int) -> NsResult<ns_fd> {
+pub fn ns_socket(domain: NsAddrFamily, ty: NsSockType, protocol: ns_int) -> NsResult<ns_fd> {
     let mut flags = ty as ns_int;
 
     if cfg!(target_os = "linux") {
@@ -31,178 +31,77 @@ pub fn ns_socket(domain: NsAddrFamily, ty: NsSocketType, protocol: ns_int) -> Ns
     Ok(fd)
 }
 
-pub fn ns_nonblocking(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe { 
-        let mut nonblocking: ns_ulong = 1;
-        libc::ioctl(fd, NS_FIONBIO, &mut nonblocking) 
-    };
+pub fn ns_socketpair(domain: NsAddrFamily, ty: NsSockType, protocol: ns_int) ->NsResult<(ns_fd, ns_fd)> {
+    let mut fds = [-1, -1];
+    let ret = unsafe { libc::socketpair(domain as ns_int, ty as ns_int, protocol, fds.as_mut_ptr()) };
     if ret == -1 {
-        println!("DEBUG: Set Non-blocking FD failed");
+        println!("DEBUG: Create socketpair failed! {:?}", ret);
         return Err(NsError::Unknow);
     }
 
-    Ok(ret)
+    Ok((fds[0], fds[1]))
 }
 
-pub fn ns_blocking(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe { 
-        let mut blocking: ns_ulong = 0;
-        libc::ioctl(fd, NS_FIONBIO, &mut blocking) 
+pub fn ns_bind(fd: ns_fd, addr: &NsSocketAddr) -> NsResult<ns_int> {
+    let ret = unsafe {
+        let (addr_ptr, len) = addr.as_ffi();
+        libc::bind(fd, addr_ptr, len)
     };
+
     if ret == -1 {
-        println!("DEBUG: Set blocking FD failed");
+        println!("DEBUG: Bind socket to {:?} error.", addr);
         return Err(NsError::Unknow);
     }
 
     Ok(ret)
 }
 
-pub fn ns_reuse(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe {
-        let yes = 1;
-        libc::setsockopt(
-            fd,
-            NS_SOL_SOCKET,
-            NS_SO_REUSEADDR,
-            &yes as *const _ as *const ns_void,
-            mem::size_of::<ns_int>() as ns_socklen_t)
-    };
-    if ret < 0 {
-        println!("DEBUG: Set socket opt re-use failed!");
-        println!("DEBUG: {:?}", io::Error::last_os_error());
-
+pub fn ns_listen(fd: ns_fd, backlog: ns_int) -> NsResult<ns_int> {
+    let ret = unsafe { libc::listen(fd, backlog) };
+    if ret == -1 {
+        println!("DEBUG: Listen socket failed: {:?}", ret);
         return Err(NsError::Unknow);
     }
 
     Ok(ret)
 }
 
-pub fn ns_keepalive(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe {
-        let yes = 1;
-        libc::setsockopt(
-            fd,
-            NS_SOL_SOCKET,
-            NS_SO_KEEPALIVE,
-            &yes as *const _ as *const ns_void,
-            mem::size_of::<ns_int>() as ns_socklen_t)
-    };
-    if ret < 0 {
-        println!("DEBUG: Set socket opt keepalive failed!");
-        println!("DEBUG: {:?}", io::Error::last_os_error());
+pub fn ns_accept(fd: ns_fd) -> NsResult<(ns_fd, NsSocketAddr, ns_socklen_t)> {
+    let mut len: ns_socklen_t = 0;
+    let mut addr: ns_sockaddr = unsafe { mem::zeroed() };
 
+    let client_fd = unsafe { libc::accept(fd, &mut addr, &mut len) };
+    if client_fd == -1 {
+        println!("DEBUG: Accept socket failed. {:?}", client_fd);
+        return Err(NsError::Unknow);
+    }
+
+    let addr_in = unsafe { mem::transmute::<ns_sockaddr, ns_sockaddr_in4>(addr) };
+
+    Ok((client_fd, NsSocketAddr::Inet(NsInetAddr::V4(NsInetAddrV4(addr_in))), len))
+}
+
+pub fn ns_shutdown_socket(fd: ns_fd, how: ns_int) -> NsResult<ns_int> {
+    let ret = unsafe { libc::shutdown(fd, how) };
+    
+    println!("DEBUG: Shutdown socket, {:?}", ret);
+    
+    if ret == -1 {
+        println!("DEBUG: Shutdown socket failed. {:?}", ret);
         return Err(NsError::Unknow);
     }
 
     Ok(ret)
 }
 
-pub fn ns_linger(fd: ns_fd, onoff: ns_int, linger: ns_int) -> NsResult<ns_int> {
-    let l = ns_linger {
-        l_onoff: onoff,
-        l_linger: linger
-    };
-    let ptr: *const ns_void = unsafe { mem::transmute(&l) };
-    let len = mem::size_of::<ns_linger>() as ns_socklen_t;
+pub fn ns_close_socket(fd: ns_fd) -> NsResult<ns_int> {
+    println!("DEBUG: Close socket FD, {}", fd);
 
-    let ret = unsafe { libc::setsockopt(fd, NS_SOL_SOCKET, NS_SO_LINGER, ptr, len) };
-    if ret < 0 {
-        println!("DEBUG: Set socket opt failed!");
-        println!("DEBUG: {:?}", io::Error::last_os_error());
-
-        return Err(NsError::Unknow);
-    }
-
-    Ok(ret)
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-pub fn ns_tcp_nopush(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe {
-        let yes = 1;
-        libc::setsockopt(
-            fd,
-            NS_IPPROTO_TCP,
-            NS_TCP_CORK,
-            &yes as *const _ as *const ns_void,
-            mem::size_of::<ns_int>() as ns_socklen_t)
-    };
-    if ret < 0 {
-        println!("DEBUG: Set linux socket opt TCP nopush failed!");
-        println!("DEBUG: {:?}", io::Error::last_os_error());
-
-        return Err(NsError::Unknow);
-    }
-
-    Ok(ret)
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-pub fn ns_tcp_push(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe {
-        let yes = 0;
-        libc::setsockopt(
-            fd,
-            NS_IPPROTO_TCP,
-            NS_TCP_CORK,
-            &yes as *const _ as *const ns_void,
-            mem::size_of::<ns_int>() as ns_socklen_t)
-    };
-    if ret < 0 {
-        println!("DEBUG: Set linux socket opt TCP push failed!");
-        println!("DEBUG: {:?}", io::Error::last_os_error());
-
-        return Err(NsError::Unknow);
-    }
-
-    Ok(ret)
-}
-
-#[cfg(any(target_os = "macos", target_os = "ios", 
-          target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
-pub fn ns_tcp_nopush(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe {
-        let yes = 1;
-        libc::setsockopt(
-            fd,
-            NS_IPPROTO_TCP,
-            NS_TCP_NOPUSH,
-            &yes as *const _ as *const ns_void,
-            mem::size_of::<ns_int>() as ns_socklen_t)
-    };
-    if ret < 0 {
-        println!("DEBUG: Set MacOS socket opt TCP nopush failed!");
-        println!("DEBUG: {:?}", io::Error::last_os_error());
-
-        return Err(NsError::Unknow);
-    }
-
-    Ok(ret)
-}
-
-#[cfg(any(target_os = "macos", target_os = "ios", 
-          target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
-pub fn ns_tcp_push(fd: ns_fd) -> NsResult<ns_int> {
-    let ret = unsafe {
-        let yes = 0;
-        libc::setsockopt(
-            fd,
-            NS_IPPROTO_TCP,
-            NS_TCP_NOPUSH,
-            &yes as *const _ as *const ns_void,
-            mem::size_of::<ns_int>() as ns_socklen_t)
-    };
-    if ret < 0 {
-        println!("DEBUG: Set MacOS socket opt TCP push failed!");
-        println!("DEBUG: {:?}", io::Error::last_os_error());
-
-        return Err(NsError::Unknow);
-    }
-
-    Ok(ret)
-}
-
-pub fn ns_close(fd: ns_fd) {
     let ret = unsafe { libc::close(fd) };
-    println!("DEBUG: Close socket FD: {:?}", ret);
+    if ret == -1 {
+        println!("DEBUG: Close socket failed. {:?}", ret);
+        return Err(NsError::Unknow);
+    }
+
+    Ok(ret)
 }

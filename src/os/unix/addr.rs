@@ -6,9 +6,9 @@ use super::*;
 #[repr(i32)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum NsAddrFamily {
-    NsUnix = NS_AF_UNIX,
-    NsInet = NS_AF_INET,
-    NsInet6 = NS_AF_INET6,
+    Unix = NS_AF_UNIX,
+    Inet4 = NS_AF_INET,
+    Inet6 = NS_AF_INET6,
 }
 
 #[derive(Copy)]
@@ -25,15 +25,15 @@ pub enum NsInetAddr {
 #[derive(Copy)]
 pub struct NsUnixAddr (pub ns_sockaddr_un, pub usize);
 
-#[derive(Copy)]
-pub enum NsSockAddr {
-    NsInet(NsInetAddr),
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum NsSocketAddr {
+    Inet(NsInetAddr),
 }
 
 impl NsInetAddrV4 {
-    pub fn new(ip: NsIPv4Addr, port: u16) -> NsInetAddrV4 {
+    pub fn new(ip: NsIPv4, port: u16) -> NsInetAddrV4 {
         NsInetAddrV4(ns_sockaddr_in4 {
-            sin_family: NsAddrFamily::NsInet as ns_family_t,
+            sin_family: NsAddrFamily::Inet4 as ns_family_t,
             sin_port: port.to_be(),
             sin_addr: ip.0,
             .. unsafe { mem::zeroed() }
@@ -42,15 +42,15 @@ impl NsInetAddrV4 {
 
     pub fn from_std(std_addr: &net::SocketAddrV4) -> NsInetAddrV4 {
         NsInetAddrV4(ns_sockaddr_in4 {
-            sin_family: NsAddrFamily::NsInet as ns_family_t,
+            sin_family: NsAddrFamily::Inet4 as ns_family_t,
             sin_port: std_addr.port().to_be(),
-            sin_addr: NsIPv4Addr::from_std(std_addr.ip()).0,
+            sin_addr: NsIPv4::from_std(std_addr.ip()).0,
             .. unsafe { mem::zeroed() }
         })
     }
 
-    pub fn ip(&self) -> NsIPv4Addr {
-        NsIPv4Addr(self.0.sin_addr)
+    pub fn ip(&self) -> NsIPv4 {
+        NsIPv4(self.0.sin_addr)
     }
 
     pub fn port(&self) -> u16 {
@@ -63,9 +63,9 @@ impl NsInetAddrV4 {
 }
 
 impl NsInetAddrV6 {
-    pub fn new(ip: NsIPv6Addr, port: u16) -> NsInetAddrV6 {
+    pub fn new(ip: NsIPv6, port: u16) -> NsInetAddrV6 {
         NsInetAddrV6(ns_sockaddr_in6 {
-            sin6_family: NsAddrFamily::NsInet6 as ns_family_t,
+            sin6_family: NsAddrFamily::Inet6 as ns_family_t,
             sin6_port: port.to_be(),
             sin6_addr: ip.0,
             .. unsafe { mem::zeroed() }
@@ -74,17 +74,17 @@ impl NsInetAddrV6 {
 
     pub fn from_std(std_addr: &net::SocketAddrV6) -> NsInetAddrV6 {
         NsInetAddrV6(ns_sockaddr_in6 {
-            sin6_family: NsAddrFamily::NsInet6 as ns_family_t,
+            sin6_family: NsAddrFamily::Inet6 as ns_family_t,
             sin6_port: std_addr.port().to_be(),
-            sin6_addr: NsIPv6Addr::from_std(std_addr.ip()).0,
+            sin6_addr: NsIPv6::from_std(std_addr.ip()).0,
             sin6_flowinfo: std_addr.flowinfo(),
             sin6_scope_id: std_addr.scope_id(),
             .. unsafe { mem::zeroed() }
         })
     }
 
-    pub fn ip(&self) -> NsIPv6Addr {
-        NsIPv6Addr(self.0.sin6_addr)
+    pub fn ip(&self) -> NsIPv6 {
+        NsIPv6(self.0.sin6_addr)
     }
 
     pub fn port(&self) -> u16 {
@@ -102,24 +102,31 @@ impl NsInetAddrV6 {
 }
 
 impl NsInetAddr {
-    pub fn new(ip: NsIPAddr, port: u16) -> NsInetAddr {
+    pub fn new(ip: NsIP, port: u16) -> NsInetAddr {
         match ip {
-            NsIPAddr::V4(a) => NsInetAddr::V4(NsInetAddrV4::new(a, port)),
-            NsIPAddr::V6(a) => NsInetAddr::V6(NsInetAddrV6::new(a, port)),
+            NsIP::V4(a) => NsInetAddr::V4(NsInetAddrV4::new(a, port)),
+            NsIP::V6(a) => NsInetAddr::V6(NsInetAddrV6::new(a, port)),
         }
     }
 
     pub fn from_std(std_addr: &net::SocketAddr) -> NsInetAddr {
         match *std_addr {
-            net::SocketAddr::V4(ref a) => NsInetAddr::V4(NsInetAddrV4::new(NsIPv4Addr::from_std(a.ip()), a.port())),
-            net::SocketAddr::V6(ref a) => NsInetAddr::V6(NsInetAddrV6::new(NsIPv6Addr::from_std(a.ip()), a.port())),
+            net::SocketAddr::V4(ref a) => NsInetAddr::V4(NsInetAddrV4::new(NsIPv4::from_std(a.ip()), a.port())),
+            net::SocketAddr::V6(ref a) => NsInetAddr::V6(NsInetAddrV6::new(NsIPv6::from_std(a.ip()), a.port())),
         }
     }
 
-    pub fn ip(&self) -> NsIPAddr {
+    pub fn to_std(&self) -> net::SocketAddr {
         match *self {
-            NsInetAddr::V4(ref a) => NsIPAddr::V4(NsIPv4Addr(a.0.sin_addr)),
-            NsInetAddr::V6(ref a) => NsIPAddr::V6(NsIPv6Addr(a.0.sin6_addr)),
+            NsInetAddr::V4(ref a) => net::SocketAddr::V4(a.to_std()),
+            NsInetAddr::V6(ref a) => net::SocketAddr::V6(a.to_std()),
+        }
+    }
+
+    pub fn ip(&self) -> NsIP {
+        match *self {
+            NsInetAddr::V4(ref a) => NsIP::V4(NsIPv4(a.0.sin_addr)),
+            NsInetAddr::V6(ref a) => NsIP::V6(NsIPv6(a.0.sin6_addr)),
         }
     }
 
@@ -208,52 +215,30 @@ impl Clone for NsUnixAddr {
     fn clone(&self) -> NsUnixAddr { *self }
 }
 
-impl NsSockAddr {
-    pub fn new_ns_inet(addr: NsInetAddr) -> NsSockAddr {
-        NsSockAddr::NsInet(addr)
+impl NsSocketAddr {
+    pub fn new_inet(addr: NsInetAddr) -> NsSocketAddr {
+        NsSocketAddr::Inet(addr)
     }
 
     pub fn family(&self) -> NsAddrFamily {
         match *self {
-            NsSockAddr::NsInet(NsInetAddr::V4(..)) => NsAddrFamily::NsInet,
-            NsSockAddr::NsInet(NsInetAddr::V6(..)) => NsAddrFamily::NsInet6,
+            NsSocketAddr::Inet(NsInetAddr::V4(..)) => NsAddrFamily::Inet4,
+            NsSocketAddr::Inet(NsInetAddr::V6(..)) => NsAddrFamily::Inet6,
         }
     }
 
     pub unsafe fn as_ffi(&self) -> (&ns_sockaddr, ns_socklen_t) {
         match *self {
-            NsSockAddr::NsInet(NsInetAddr::V4(ref a)) => (mem::transmute(a), mem::size_of::<ns_sockaddr_in4>() as ns_socklen_t),
-            NsSockAddr::NsInet(NsInetAddr::V6(ref a)) => (mem::transmute(a), mem::size_of::<ns_sockaddr_in6>() as ns_socklen_t),
+            NsSocketAddr::Inet(NsInetAddr::V4(ref a)) => (mem::transmute(a), mem::size_of::<ns_sockaddr_in4>() as ns_socklen_t),
+            NsSocketAddr::Inet(NsInetAddr::V6(ref a)) => (mem::transmute(a), mem::size_of::<ns_sockaddr_in6>() as ns_socklen_t),
         }
     }
 }
 
-impl PartialEq for NsSockAddr {
-    fn eq(&self, other: &NsSockAddr) -> bool {
-        match (*self, *other) {
-            (NsSockAddr::NsInet(ref a), NsSockAddr::NsInet(ref b)) => { a == b }
-        }
-    }
-}
-
-impl Eq for NsSockAddr {}
-
-impl hash::Hash for NsSockAddr {
-    fn hash<H: hash::Hasher>(&self, s: &mut H) {
-        match *self {
-            NsSockAddr::NsInet(ref a) => a.hash(s),
-        }
-    }
-}
-
-impl Clone for NsSockAddr {
-    fn clone(&self) -> NsSockAddr { *self }
-}
-
-impl fmt::Display for NsSockAddr {
+impl fmt::Display for NsSocketAddr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            NsSockAddr::NsInet(ref a) => a.fmt(f),
+            NsSocketAddr::Inet(ref a) => a.fmt(f),
         }
     }
 }

@@ -27,7 +27,7 @@ pub const NS_IPPROTO_ICMP: c_int = libc::IPPROTO_ICMP;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub const NS_TCP_CORK: c_int = libc::TCP_CORK;
 #[cfg(any(target_os = "macos", target_os = "ios", 
-          target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
+          target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
 pub const NS_TCP_NOPUSH: c_int = 0x04;
 
 pub const NS_TCP_NODELAY: c_int = libc::TCP_NODELAY;

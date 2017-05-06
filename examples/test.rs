@@ -4,10 +4,11 @@ extern crate train;
 use train::os::addr::*;
 use train::os::fd::*;
 use train::os::socket::*;
+use train::os::socketopt::*;
 
 fn main() {
 
-    let s = ns_socket(NsAddrFamily::NsInet, NsSocketType::Stream, 0).unwrap();
+    let s = ns_socket(NsAddrFamily::NsInet, NsSockType::Stream, 0).unwrap();
 
     println!("flag: {:?}", ns_flags(s).unwrap());
 
@@ -19,5 +20,5 @@ fn main() {
     println!("non-blocking: {:?}", ns_flags(s).unwrap());
     println!("fd: {:?}", s);
 
-    ns_close(s);
+    ns_close_socket(s);
 }
