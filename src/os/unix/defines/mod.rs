@@ -1,3 +1,4 @@
+
 use libc::{self, c_int, c_ulong};
 
 pub const NS_AF_UNIX: c_int = libc::AF_UNIX;
@@ -24,18 +25,8 @@ pub const NS_IPPROTO_TCP: c_int = libc::IPPROTO_TCP;
 pub const NS_IPPROTO_IP: c_int = libc::IPPROTO_IP;
 pub const NS_IPPROTO_ICMP: c_int = libc::IPPROTO_ICMP;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
-pub const NS_TCP_CORK: c_int = libc::TCP_CORK;
-#[cfg(any(target_os = "macos", target_os = "ios", 
-          target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))]
-pub const NS_TCP_NOPUSH: c_int = 0x04;
-
 pub const NS_TCP_NODELAY: c_int = libc::TCP_NODELAY;
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
-pub const NS_TCP_MAXSEG: c_int = libc::TCP_MAXSEG;
-#[cfg(any(target_os = "macos", target_os = "ios"))]
-pub const NS_TCP_MAXSEG: c_int = 2;
 
 pub type ns_int = c_int;
 pub type ns_ulong = c_ulong;
@@ -52,3 +43,28 @@ pub type ns_sockaddr_in6 = libc::sockaddr_in6;
 pub type ns_sockaddr_un = libc::sockaddr_un;
 
 pub type ns_linger = libc::linger;
+
+
+cfg_if! {
+    if #[cfg(any(target_os = "linux",
+                 target_os = "android",
+                 target_os = "emscripten",
+                 target_os = "fuchsia"))] {
+        mod linux;
+        pub use self::linux::*;
+    } else if #[cfg(any(target_os = "macos",
+                        target_os = "ios",
+                        target_os = "freebsd",
+                        target_os = "dragonfly",
+                        target_os = "openbsd",
+                        target_os = "netbsd",
+                        target_os = "bitrig"))] {
+        mod bsd;
+        pub use self::bsd::*;
+    } else if #[cfg(target_os = "solaris")] {
+        mod solaris;
+        pub use self::solaris::*;
+    } else {
+        // Unknown target_os
+    }
+}

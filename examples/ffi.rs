@@ -1,7 +1,16 @@
 
-extern crate train;
+mod ios {
+    pub const aa: i32 = 1;
+}
+
+mod ss {
+    pub const bb: i32 = 0;
+}
+
+use ios::*;
+use ss::*;
+
 
 fn main() {
-    train::os::NsInetAddrV4::new();
-    train::os::NsInetAddrV4::to_str();
+    println!("Two modules: {:?}, {:?}", aa, bb);
 }

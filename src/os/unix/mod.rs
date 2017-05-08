@@ -6,6 +6,7 @@ pub mod addr;
 pub mod fd;
 pub mod socket;
 pub mod socketopt;
+pub mod error;
 
 
 use self::defines::*;
