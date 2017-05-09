@@ -23,8 +23,11 @@ fn main() {
 
    
     ptr_struct(list3.as_mut_ptr() as *const Vec<S>);
+    ptr_struct(list3.as_ptr() as *const Vec<S>);
     ptr_struct(std::ptr::null());
     //ptr_struct(std::ptr::null_mut());
+
+    ptr_only_struct(list3.as_ptr());
 
      ptr_mut_struct(&mut list3);
      // Err: ptr_mut_struct(list3.as_mut_ptr());
@@ -51,6 +54,15 @@ fn ptr_struct(list: *const Vec<S>) {
     } 
 
     println!("Ptr *count: {:?}", list);
+}
+
+fn ptr_only_struct(list: *const S) {
+
+    if list == std::ptr::null() {
+        print!("Null - ");
+    } 
+
+    println!("Ptr only *count: {:?}", list);
 }
 
 fn ptr_mut_struct(list: *mut Vec<S>) {
