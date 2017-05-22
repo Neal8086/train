@@ -11,10 +11,11 @@ mod winapi {
 }
 
 #[macro_use]
-pub mod macros;
-pub mod core;
-pub mod os;
+mod macros;
 
+mod core;
+mod os;
+mod event;
 
 pub use self::macros::*;
 pub use self::core::{NsResult, NsError};

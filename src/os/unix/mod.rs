@@ -1,14 +1,18 @@
 #[allow(non_camel_case_types)]
 
-pub mod defines;
-pub mod ip;
-pub mod addr;
-pub mod fd;
-pub mod socket;
-pub mod socketopt;
-pub mod error;
+mod defines;
+mod ip;
+mod addr;
+mod fd;
+mod socket;
+mod socketopt;
+mod error;
 
 
-use self::defines::*;
-use self::ip::*;
-use self::addr::*;
+pub use self::defines::*;
+pub use self::ip::*;
+pub use self::addr::*;
+pub use self::fd::*;
+pub use self::socket::*;
+pub use self::socketopt::*;
+pub use self::error::*;

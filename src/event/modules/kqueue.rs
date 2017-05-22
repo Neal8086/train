@@ -1,10 +1,13 @@
 use std::{mem};
 use libc;
-use super::*;
+use os::*;
+use NsError;
+use NsResult;
+use event::traits::NsEventTrait;
 
 
 pub fn ns_kqueue() -> NsResult<ns_fd> {
-    let ret = unsafe { libc::kqueue(); };
+    let ret = unsafe { libc::kqueue() };
 
     if ret == -1 {
         println!("DEBUG: Create kqueue failed. {:?}", ret);
@@ -15,7 +18,7 @@ pub fn ns_kqueue() -> NsResult<ns_fd> {
 }
 
 pub fn ns_kevent(kq: ns_fd, 
-                change_list: *count ns_kevent, 
+                change_list: *const ns_kevent, 
                 n_changes: ns_int, 
                 event_list: *mut ns_kevent, 
                 n_events: ns_int, 
@@ -29,4 +32,31 @@ pub fn ns_kevent(kq: ns_fd,
     }
 
     Ok(0)
+}
+
+pub struct NsKQueue {
+    pub fd: ns_fd,
+
+}
+
+impl NsEventTrait for NsKQueue {
+
+    fn new() -> NsResult<NsKQueue> {
+        let ret = unsafe { libc::kqueue() };
+
+        if ret == -1 {
+            println!("DEBUG: Create kqueue failed. {:?}", ret);
+            return Err(NsError::Unknow);
+        }
+
+        Ok(NsKQueue{ fd: ret })
+    }
+
+    fn add_event() {}
+
+    fn del_event() {}
+
+    fn notify() {}
+    
+    fn process_events() {}
 }

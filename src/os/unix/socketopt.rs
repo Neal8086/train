@@ -5,8 +5,8 @@ use NsResult;
 use super::*;
 
 
-// ioctl(FIONBIO) sets a non-blocking mode with the single syscall
-// while fcntl(F_SETFL, O_NONBLOCK) needs to learn the current state using fcntl(F_GETFL).
+/// ioctl(FIONBIO) sets a non-blocking mode with the single syscall
+/// while fcntl(F_SETFL, O_NONBLOCK) needs to learn the current state using fcntl(F_GETFL).
 
 pub fn ns_nonblocking(fd: ns_fd) -> NsResult<ns_int> {
     let ret = unsafe { 
