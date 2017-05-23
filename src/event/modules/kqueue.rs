@@ -34,14 +34,13 @@ pub fn ns_kevent(kq: ns_fd,
     Ok(0)
 }
 
-pub struct NsKQueue {
+pub struct NsKqueue {
     pub fd: ns_fd,
-
 }
 
-impl NsEventTrait for NsKQueue {
+impl NsEventTrait for NsKqueue {
 
-    fn new() -> NsResult<NsKQueue> {
+    fn new() -> NsResult<NsKqueue> {
         let ret = unsafe { libc::kqueue() };
 
         if ret == -1 {
@@ -49,7 +48,7 @@ impl NsEventTrait for NsKQueue {
             return Err(NsError::Unknow);
         }
 
-        Ok(NsKQueue{ fd: ret })
+        Ok(NsKqueue{ fd: ret })
     }
 
     fn add_event() {}
