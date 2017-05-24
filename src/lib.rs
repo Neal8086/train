@@ -13,12 +13,14 @@ mod winapi {
 #[macro_use]
 mod macros;
 
-mod core;
-mod os;
-mod event;
+
+// TODO: Remove pub
+pub mod core;
+pub mod os;
+pub mod event;
 
 pub use self::macros::*;
-pub use self::core::{NsResult, NsError};
+pub use self::core::{NsResult, NsError, Nest, Config};
 
 cfg_if! {
     if #[cfg(any(target_os = "linux",
