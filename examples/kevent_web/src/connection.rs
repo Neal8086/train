@@ -20,6 +20,12 @@ pub struct Connection {
     pub write_buf: Vec<u8>,
 }
 
+const WEB_WELCOME: &str = "HTTP/1.1 200 OK
+Date: Tue, 31 Oct 2017 13:40:35 GMT
+Content-Type: text/html; charset=utf-8
+
+<h1>Welcome to Nest!</h1>";
+
 impl Connection {
      
     pub fn new() -> Connection {
@@ -32,7 +38,7 @@ impl Connection {
              read_size: 0,
              write_size: 0,
              read_buf: Vec::new(),
-             write_buf: "Welcome >>>>>>>>>>>>>>>>>>>>> to server".as_bytes().to_vec(),
+             write_buf: WEB_WELCOME.as_bytes().to_vec(),
         }
     }
 
@@ -217,7 +223,7 @@ impl Connection {
 
         let fd = ev.ident as i32;
         let writable_len = ev.data;
-        let buf = "Welcome >>>>>>>>>>>>>>>>>>>>> to server".as_bytes();
+        let buf = WEB_WELCOME.as_bytes();
 
         println!("DEBUG: wite event. writable count: {:?}, fd: {:?}", writable_len, fd);
 

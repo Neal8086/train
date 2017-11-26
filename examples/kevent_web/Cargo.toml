@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Haiwei LI <haiweili@unity3d.com>"]
 
 [dependencies]
-libc = "0.2.21"
+libc = "0.2.33"
 slab = "0.3.0"
