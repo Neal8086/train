@@ -37,8 +37,8 @@ fn main() {
 
     signal::set_empty_signal(&mut sigset);
 
-
     println!("INFO: begin fork process.");
+    
     for _ in 1..3 {        
         let pid = unsafe { libc::fork() };
         if pid < 0 {
