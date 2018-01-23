@@ -3,17 +3,30 @@
 #![allow(unused_imports)]
 extern crate libc;
 
+mod global;
 mod signal;
+mod socketpair;
 
-use std::{mem, thread, time};
+use std::{fmt, mem, thread, time};
 use std::io::{Error};
 
 
-fn main() {
-    let mut child_pids: Vec<i32> = Vec::new();
+pub struct Context {
+    master_pid: i32,
+    childs: Vec<i32>,
+    channels: Vec<(i32, i32)>,
+}
 
+fn main() {
     println!("INFO: multi-Process test");
-    println!("INFO: self PID: {:?}", unsafe { libc::getpid() });
+
+    let mut ctx = Context{
+        master_pid: unsafe { libc::getpid() },
+        childs: Vec::new(),
+        channels: Vec::new(),
+    };
+    
+    println!("INFO: self PID: {:?}", ctx.master_pid);
 
 
     println!("INFO: begin init signals.");
@@ -33,50 +46,94 @@ fn main() {
     signal::add_signal(&mut sigset, libc::SIGQUIT);
     signal::add_signal(&mut sigset, libc::SIGXCPU);
 
-    signal::signal_proc_mask(&mut sigset);
-
+    signal::signal_set_block(&mut sigset);
     signal::set_empty_signal(&mut sigset);
 
-    println!("INFO: begin fork process.");
-    
-    for _ in 1..3 {        
-        let pid = unsafe { libc::fork() };
-        if pid < 0 {
-            println!("ERROR: fork error: {:?}", Error::last_os_error());
-            return;
-        }
 
-        if pid == 0 {
-            let self_pid = unsafe{ libc::getpid()};
-            let parent_pid = unsafe{ libc::getppid() };
+    start_worker_processes(&mut ctx);
 
-            println!("Child process: pid: {:?}, ppid: {:?}", self_pid, parent_pid);
-            child_pids.push(self_pid);
-
-            println!("DEBUG: store childs: {:?}", child_pids);
-
-            let dura = time::Duration::from_secs(10);
-            thread::sleep(dura);
-
-            return;
-        } else {
-            println!("Master process, PID: {:?}, new fork child PID: {:?}", unsafe{ libc::getpid()}, pid);
-        }
-    }
-    println!("INFO: end fork process.");
-
-    for i in child_pids {
-        println!("DEBUG: store pid: {:?}", i);
-    }
-
-
+    let self_pid = unsafe { libc::getpid() };
     loop {
-        println!("INFO: loop signal suspend.");
+        println!("INFO: loop signal suspend. self PID: {:?}", self_pid);
 
         signal::signal_suspend(&mut sigset);
 
-        println!("INFO: proccess received a signal and exit");
-        break;
+        println!("INFO: proccess received a signal. NO: {:?}, PID: {:?}", sigset, self_pid);
     }
 
 }
+
+fn get_socketpair(pid: libc::c_int) -> (libc::c_int, libc::c_int) {
+    let ret = socketpair::socketpair().unwrap();
+
+    println!("DEBUG: new socket pair: {:?}", ret);
+
+    socketpair::nonblocking(ret.0);
+    socketpair::nonblocking(ret.1);
+
+    socketpair::fio_async(ret.0, true);
+    socketpair::fcntl_set(ret.0, libc::F_SETOWN, pid);
+
+    socketpair::fcntl_set(ret.0, libc::F_SETFD, libc::FD_CLOEXEC);
+    socketpair::fcntl_set(ret.1, libc::F_SETFD, libc::FD_CLOEXEC);
+
+    return ret;
+}
+
+fn start_worker_processes(ctx: &mut Context) {
+    println!("INFO: start_worker_processes.");
+
+    for _ in 1..3 {
+        let channel = get_socketpair(ctx.master_pid);
+        ctx.channels.push(channel);
+
+        let pid = unsafe { libc::fork() };
+
+        match pid {
+            -1 => println!("ERROR: fork error: {:?}", Error::last_os_error()),
+
+            0 => {
+                woker();
+                return;
+            },
+
+            _ => {                
+                println!("INFO: Master process, PID: {:?}, new fork child PID: {:?}", unsafe{ libc::getpid()}, pid);
+                ctx.childs.push(pid);
+            },
+        }
+    }
+
+    for pid in ctx.childs.clone() {
+        println!("DEBUG: childs pid: {:?}", pid);
+    }
+}
+
+fn woker() {
+    let self_pid = unsafe{ libc::getpid()};
+    let parent_pid = unsafe{ libc::getppid() };
+    println!("INFO: Worker process: pid: {:?}, ppid: {:?}", self_pid, parent_pid);
+
+    /*
+    let mut sigset: libc::sigset_t = unsafe { mem::uninitialized() };
+    signal::set_empty_signal(&mut sigset);
+    signal::signal_set_mask(&mut sigset);
+    */
+
+    unsafe {
+        global::IS_MASTER = false
+    };
+
+    let dura = time::Duration::from_secs(10);
+    loop {
+        thread::sleep(dura);
+
+        println!("DEBUG: Online PID: {:?}", self_pid);
+    }
+    /*
+    let send_str = format!("From PID: {}!", self_pid);;
+    socketpair::send(ctx.channels.0, &send_str);
+    */
+}
+
+

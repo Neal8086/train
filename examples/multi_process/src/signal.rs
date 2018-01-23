@@ -3,10 +3,19 @@ use std;
 use std::{mem, ptr, thread, time};
 use std::io::{Error};
 
+use global;
 
 extern "C" {
     fn sigprocmask(signum: libc::c_int, set: *const libc::sigset_t, oldset: *const libc::sigset_t) -> libc::c_int;
     fn sigsuspend(set: *mut libc::sigset_t) -> libc::c_int;
+}
+
+#[repr(C)]
+pub struct sigaction {
+    pub sa_sigaction: libc::sighandler_t,
+    pub sa_handler: libc::sighandler_t,
+    pub sa_mask: libc::sigset_t,
+    pub sa_flags: libc::c_int,
 }
 
 #[derive(Copy, Clone)]
@@ -110,8 +119,18 @@ pub fn add_signal(sigset: &mut libc::sigset_t, signum: libc::c_int) {
     }
 }
 
-pub fn signal_proc_mask(sigset: &mut libc::sigset_t) {
+pub fn signal_set_block(sigset: &mut libc::sigset_t) {
     let ret = unsafe { sigprocmask(libc::SIG_BLOCK, sigset as *const libc::sigset_t, ptr::null()) };
+
+    if ret == -1 {
+        println!("DEBUG: sigprocmask failed. Error: {:?}", Error::last_os_error());
+
+        std::process::exit(1);
+    }
+}
+
+pub fn signal_set_mask(sigset: &mut libc::sigset_t) {
+    let ret = unsafe { sigprocmask(libc::SIG_SETMASK, sigset as *const libc::sigset_t, ptr::null()) };
 
     if ret == -1 {
         println!("DEBUG: sigprocmask failed. Error: {:?}", Error::last_os_error());
@@ -124,28 +143,49 @@ pub fn signal_suspend(sigset: &mut libc::sigset_t) {
     let ret = unsafe { sigsuspend(sigset as *mut libc::sigset_t) };
 
     if ret == -1 {
-        println!("DEBUG: sigsuspend failed. Error: {:?}", Error::last_os_error());
+        println!("DEBUG: sigsuspend failed. PID: {:?}, Error: {:?}", unsafe{ libc::getpid() }, Error::last_os_error());
 
-        std::process::exit(1);
+        //std::process::exit(1);
     }
 }
 
-pub fn signal_handler(signo: usize) {
-    println!("DEBUG: signal_handler, signo: {:?}", signo);
+pub fn signal_handler(signo: usize, siginfo: libc::siginfo_t, ucontext: libc::c_void) {
+    println!("DEBUG: signal handler, signo: {:?}, PID: {:?}", signo, unsafe { libc::getpid() });
+    
+    let is_master = unsafe { global::IS_MASTER };
+
+    for sig in SIGNALS.iter() {
+        if signo as i32 == sig.signo {
+            println!("INFO: receive signal is {:?}({:?}), self PID: {:?}, is master: {:?}", 
+                sig.name, 
+                sig.signo, 
+                unsafe { libc::getpid() }, 
+                is_master);
+        }
+    
+        if is_master && signo as i32 == libc::SIGCHLD {
+            std::process::exit(0);
+        } else if !is_master {
+            std::process::exit(0);
+        }
+    }
 }
 
 pub fn init() {
 
     for sig in SIGNALS.iter() {
-        let mut sigset = unsafe { mem::uninitialized::<libc::sigaction>() };
-
-        set_empty_signal(&mut sigset.sa_mask);
+        let mut sa = unsafe { mem::uninitialized::<sigaction>() };
 
         if sig.handler != libc::SIG_IGN {
-            sigset.sa_sigaction = signal_handler as usize;
+            sa.sa_sigaction = signal_handler as usize;
+            sa.sa_flags = libc::SA_SIGINFO;
+        } else {
+            sa.sa_handler = libc::SIG_IGN;
         }
 
-        if -1 == unsafe { libc::sigaction(sig.signo, &sigset as *const libc::sigaction, ptr::null_mut()) } {
+        set_empty_signal(&mut sa.sa_mask);
+
+        if -1 == unsafe { libc::sigaction(sig.signo, &sa as *const _ as *const libc::sigaction, ptr::null_mut()) } {
            println!("DEBUG: sigaction failed. Error: {:?}", Error::last_os_error());
         } else {
             println!("DEBUG: sigaction: {:?}", sig.name);

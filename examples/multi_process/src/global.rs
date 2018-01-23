@@ -1,0 +1,1 @@
+pub static mut IS_MASTER: bool = true;

@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["LI <haiwei8086@gmail.com>"]
 
 [dependencies]
-libc = "0.2.33"
-rustc-serialize = "0.3.22"
-winapi = "0.2.8"
+libc = "0.2.36"
+winapi = "0.3.4"
+rustc-serialize = "0.3.24"
+log = "0.4.1"

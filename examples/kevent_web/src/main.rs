@@ -2,6 +2,9 @@
 #![allow(unused_imports)]
 extern crate libc;
 
+#[macro_use]
+extern crate log;
+
 mod event;
 mod connection;
 mod socket;
@@ -9,6 +12,8 @@ mod socket;
 use std::{mem, ptr, fmt, net, thread, time};
 use std::io::Error;
 use std::fmt::Debug;
+use log::{Level, LevelFilter, Log, Record, Metadata};
+
 
 use event::Event;
 use connection::Connection;
@@ -20,7 +25,9 @@ const LISTEN_BACKLOG: usize = 510;
 
 
 fn main() {
-    println!("Kevent web sample.");
+    log::set_max_level(LevelFilter::Trace);
+    trace!("Kevent web sample start.");
+    info!(target: "kevent", "Kevent web sample start");
 
     let listen_fd = socket::listen(&[127, 0, 0, 1], 3000).unwrap();
 
