@@ -6,6 +6,8 @@ use std::{io, fmt, error, convert};
 pub enum NsError {
     IO(io::Error),
     Unknow,
+    NestError,
+    SysError,
 }
 
 impl fmt::Display for NsError {

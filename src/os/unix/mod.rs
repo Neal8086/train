@@ -7,6 +7,7 @@ mod fd;
 mod socket;
 mod socketopt;
 mod error;
+mod singal;
 
 
 pub use self::defines::*;
@@ -16,3 +17,4 @@ pub use self::fd::*;
 pub use self::socket::*;
 pub use self::socketopt::*;
 pub use self::error::*;
+pub use self::singal::*;

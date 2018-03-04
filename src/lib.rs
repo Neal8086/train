@@ -1,4 +1,6 @@
-
+// TODO: Remove
+#![allow(dead_code)]
+#![allow(unused_imports)]
 
 mod libc {
     extern crate libc;
@@ -9,6 +11,9 @@ mod winapi {
     extern crate winapi;
     pub use self::winapi::*;
 }
+
+#[macro_use]
+extern crate log;
 
 #[macro_use]
 mod macros;

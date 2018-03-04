@@ -1,4 +1,4 @@
-use std::{mem, ptr};
+use std::{ptr};
 use libc;
 use os::*;
 use NsError;

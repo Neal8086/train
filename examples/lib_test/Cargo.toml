@@ -1,0 +1,9 @@
+[package]
+name = "lib_test"
+version = "0.1.0"
+authors = ["Neal LI <haiwei8086@gmail.com>"]
+
+[dependencies]
+log = "*"
+simple_logger = "*"
+train = { path = "../../"}

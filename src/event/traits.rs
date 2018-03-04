@@ -1,4 +1,3 @@
-use NsError;
 use NsResult;
 
 pub trait NsEventTrait: Sized {
